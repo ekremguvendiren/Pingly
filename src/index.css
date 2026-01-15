@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  color: #e4e4e7;
+  /* zinc-200 */
+  background-color: #09090b;
+  /* zinc-950 - Solid Dark Background */
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+@theme {
+  --color-brand-primary: #3b82f6;
+  /* Blue-500 */
+  --color-brand-hover: #2563eb;
+  /* Blue-600 */
+  --color-surface-card: #18181b;
+  /* zinc-900 */
+  --color-surface-hover: #27272a;
+  /* zinc-800 */
+  --color-border-subtle: #27272a;
+  /* zinc-800 */
+}
+
+@utility card-subtle {
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+}
