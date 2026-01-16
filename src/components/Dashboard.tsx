@@ -8,7 +8,6 @@ import { twMerge } from 'tailwind-merge';
 import { calculateBufferbloatGrade, getSmartDoctorAdvice } from '../utils/grading';
 import GamerZone from './GamerZone';
 import History, { TestResult } from './History';
-import SpeedGraph from './SpeedGraph';
 import DnsTools from './DnsTools';
 import ServiceQuality from './ServiceQuality';
 import Settings from './Settings';
@@ -55,8 +54,6 @@ export default function Dashboard() {
         location: '...'
     });
 
-    const [graphData, setGraphData] = useState<{ download: number[], upload: number[] }>({ download: [], upload: [] });
-
     const [currentPhase, setCurrentPhase] = useState<'idle' | 'ping' | 'download' | 'upload' | 'complete'>('idle');
     const [grade, setGrade] = useState<{ grade: string, color: string } | null>(null);
     const [doctorAdvice, setDoctorAdvice] = useState<string | null>(null);
@@ -97,7 +94,6 @@ export default function Dashboard() {
             } else if (p.phase === 'download_result') {
                 const dl = p.download_speed || 0;
                 setMetrics(prev => ({ ...prev, download: dl }));
-                if (dl > 0) setGraphData(prev => ({ ...prev, download: [...prev.download, dl] }));
                 setCurrentPhase('upload');
 
             } else if (p.phase === 'complete') {
@@ -160,7 +156,6 @@ export default function Dashboard() {
     async function startTest() {
         setLoading(true);
         setMetrics({ ping: 0, jitter: 0, loss: 0, download: 0, upload: 0, loadedLatency: 0, loadedDown: 0, loadedUp: 0 });
-        setGraphData({ download: [], upload: [] });
         setGrade(null);
         setDoctorAdvice(null);
         setConnInfo({ ip: '...', isp: 'Detecting...', location: '...' });

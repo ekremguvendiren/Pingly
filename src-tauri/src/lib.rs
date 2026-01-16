@@ -163,50 +163,114 @@ struct GamePing {
     status: String,
 }
 
-async fn icmp_measure(host: &str) -> Option<f32> {
-    #[cfg(target_os = "windows")]
-    let mut cmd = tokio::process::Command::new("ping");
-    #[cfg(target_os = "windows")]
-    cmd.args(["-n", "1", "-w", "1000", host]);
+// Basic UDP Heartbeat (for Riot/Valorant)
+async fn udp_measure_basic(host: &str, port: u16) -> Option<f32> {
+    let start = Instant::now();
+    let addr = format!("{}:{}", host, port);
 
-    #[cfg(not(target_os = "windows"))]
-    let mut cmd = tokio::process::Command::new("ping");
-    #[cfg(not(target_os = "windows"))]
-    cmd.args(["-c", "1", "-W", "1000", host]);
+    let socket = tokio::net::UdpSocket::bind("0.0.0.0:0").await.ok()?;
+    socket.connect(&addr).await.ok()?;
 
-    // Use output() to get stdout
-    match cmd.output().await {
-        Ok(output) => {
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                // Parse "time=123.45 ms" or "time=12ms"
-                if let Some(idx) = stdout.find("time=") {
-                    let rest = &stdout[idx + 5..];
-                    if let Some(end) = rest.find(" ") {
-                        return rest[..end].parse::<f32>().ok();
-                    }
-                }
-                // Windows "time<1ms"
-                if stdout.contains("time<1ms") {
-                    return Some(1.0);
-                }
-            }
-            None
+    // Send a simple 4-byte payload.
+    let payload = [0u8; 4];
+    socket.send(&payload).await.ok()?;
+
+    let mut buf = [0u8; 1024];
+    match tokio::time::timeout(
+        std::time::Duration::from_millis(1500),
+        socket.recv(&mut buf),
+    )
+    .await
+    {
+        Ok(Ok(_)) => {
+            let duration = start.elapsed().as_secs_f32() * 1000.0;
+            Some(duration)
         }
-        Err(_) => None,
+        _ => None, // Timeout or Error
     }
 }
 
-async fn measure_target(provider: String, region: String, ip: String, _port: u16, window: Window) {
+// Valve A2S_INFO Query (CS2)
+async fn udp_measure_a2s(host: &str, port: u16) -> Option<f32> {
+    let start = Instant::now();
+    let addr = format!("{}:{}", host, port);
+
+    let socket = tokio::net::UdpSocket::bind("0.0.0.0:0").await.ok()?;
+    socket.connect(&addr).await.ok()?;
+
+    // A2S_INFO Payload: 0xFF 0xFF 0xFF 0xFF T Source Engine Query 0x00
+    let payload = [
+        0xFF, 0xFF, 0xFF, 0xFF, // Header
+        0x54, // 'T'
+        0x53, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x20, 0x45, 0x6E, 0x67, 0x69, 0x6E, 0x65, 0x20, 0x51,
+        0x75, 0x65, 0x72, 0x79, // "Source Engine Query"
+        0x00, // Null terminator
+    ];
+
+    socket.send(&payload).await.ok()?;
+
+    let mut buf = [0u8; 1024];
+    match tokio::time::timeout(
+        std::time::Duration::from_millis(1500),
+        socket.recv(&mut buf),
+    )
+    .await
+    {
+        Ok(Ok(_)) => {
+            let duration = start.elapsed().as_secs_f32() * 1000.0;
+            Some(duration)
+        }
+        _ => None,
+    }
+}
+
+async fn tcp_measure(host: &str, port: u16) -> Option<f32> {
+    let start = Instant::now();
+    let addr = format!("{}:{}", host, port);
+
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(2), // 2s timeout for TCP
+        tokio::net::TcpStream::connect(&addr),
+    )
+    .await
+    {
+        Ok(Ok(_)) => {
+            let duration = start.elapsed().as_secs_f32() * 1000.0;
+            Some(duration)
+        }
+        _ => None,
+    }
+}
+
+async fn measure_target(provider: String, region: String, ip: String, port: u16, window: Window) {
     let mut latencies = Vec::new();
 
-    // Perform 3 pings
     for _ in 0..3 {
-        // Use ICMP measure instead of TCP
-        if let Some(ms) = icmp_measure(&ip).await {
+        let rtt = if provider == "Counter-Strike 2" {
+            // Priority: A2S_INFO (UDP) -> TCP (Fallback)
+            if let Some(ms) = udp_measure_a2s(&ip, port).await {
+                Some(ms)
+            } else {
+                // Determine fallback logic. User said "fallback to TCP Handshake on Port 443 immediately"
+                // if UDP is blocked.
+                tcp_measure(&ip, 443).await
+            }
+        } else if provider == "Valorant" || provider.contains("Riot") {
+            // Priority: UDP Heartbeat -> TCP (Fallback)
+            if let Some(ms) = udp_measure_basic(&ip, port).await {
+                Some(ms)
+            } else {
+                tcp_measure(&ip, 443).await
+            }
+        } else {
+            // Standard TCP for others or unknown
+            tcp_measure(&ip, port).await
+        };
+
+        if let Some(ms) = rtt {
             latencies.push(ms);
         }
-        // Small delay
+
         tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
     }
 
@@ -214,11 +278,8 @@ async fn measure_target(provider: String, region: String, ip: String, _port: u16
         (0.0, 0.0, "maintenance".to_string())
     } else {
         let avg: f32 = latencies.iter().sum::<f32>() / latencies.len() as f32;
-
-        // Calculate Jitter
         let jitter_val: f32 =
             latencies.iter().map(|l| (l - avg).abs()).sum::<f32>() / latencies.len() as f32;
-
         (avg, jitter_val, "stable".to_string())
     };
 
@@ -274,16 +335,26 @@ async fn ping_game_servers(window: Window) {
             443,
         ),
         ("League of Legends", "Korea (Seoul)", "104.160.135.1", 443),
-        // --- Valorant ---
-        ("Valorant", "Frankfurt", "104.160.142.3", 443),
+        // --- Valorant / Riot Global ---
+        // GearUP Entry Nodes (User Provided)
+        ("Valorant", "Frankfurt (GearUP Node)", "162.249.72.1", 443),
+        ("Valorant", "Istanbul (GearUP Node)", "162.249.79.1", 443),
         ("Valorant", "Paris", "52.47.0.1", 443),
         ("Valorant", "London", "35.176.0.1", 443),
-        ("Valorant", "Istanbul", "104.160.143.212", 443),
         ("Valorant", "NA East (N. Virginia)", "23.23.0.1", 443),
         ("Valorant", "NA West (N. California)", "54.215.0.1", 443),
         ("Valorant", "Tokyo", "52.192.0.1", 443),
         ("Valorant", "Singapore", "151.106.248.1", 443),
         // --- Counter-Strike 2 ---
+        // GearUP Entry Nodes (User Provided)
+        // CS2 uses Port 27015 for A2S_INFO Queries
+        (
+            "Counter-Strike 2",
+            "EU Central (Germany)",
+            "155.133.226.70",
+            27015,
+        ),
+        // Others
         (
             "Counter-Strike 2",
             "EU West (Luxembourg)",
@@ -292,37 +363,23 @@ async fn ping_game_servers(window: Window) {
         ),
         (
             "Counter-Strike 2",
-            "EU East (Vienna)",
-            "146.66.155.1",
-            27015,
-        ),
-        (
-            "Counter-Strike 2",
-            "Poland (Warsaw)",
-            "155.133.230.1",
-            27015,
-        ),
-        ("Counter-Strike 2", "Spain (Madrid)", "155.133.246.1", 27015),
-        (
-            "Counter-Strike 2",
             "US East (Sterling)",
             "162.254.192.1",
             27015,
         ),
         (
             "Counter-Strike 2",
-            "US West (Seattle)",
-            "155.133.253.38",
+            "US West (California)",
+            "162.254.199.1",
             27015,
         ),
-        ("Counter-Strike 2", "Japan (Tokyo)", "155.133.239.25", 27015),
-        ("Counter-Strike 2", "Singapore", "103.10.124.1", 27015),
         (
             "Counter-Strike 2",
-            "Australia (Sydney)",
-            "103.10.125.1",
+            "Asia (Singapore)",
+            "103.10.124.1",
             27015,
         ),
+        ("Counter-Strike 2", "Asia (Tokyo)", "155.133.239.1", 27015),
         // --- Apex Legends ---
         ("Apex Legends", "EU (Frankfurt)", "52.58.0.1", 443),
         ("Apex Legends", "EU (London)", "35.176.0.1", 443),
@@ -637,6 +694,7 @@ async fn run_full_speed_test(window: Window) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             simple_ping,

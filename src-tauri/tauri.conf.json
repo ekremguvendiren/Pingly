@@ -31,5 +31,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/ekremguvendiren/Pingly/releases/latest/download/updater.json"
+      ],
+      "pubkey": "SENIN_OLUSTURDUGUN_ANAHTAR"
+    }
   }
 }
