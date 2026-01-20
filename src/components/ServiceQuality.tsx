@@ -26,10 +26,10 @@ interface ServiceRating {
 
 function getQualityColor(level: QualityLevel) {
     switch (level) {
-        case 'Excellent': return 'text-teal-400 border-teal-500/30 bg-teal-500/10';
-        case 'Good': return 'text-green-400 border-green-500/30 bg-green-500/10';
-        case 'Fair': return 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10';
-        case 'Poor': return 'text-red-400 border-red-500/30 bg-red-500/10';
+        case 'Excellent': return 'text-teal-400 border-teal-500/20 bg-teal-500/10 shadow-[0_0_30px_rgba(45,212,191,0.1)]';
+        case 'Good': return 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10 shadow-[0_0_30px_rgba(52,211,153,0.1)]';
+        case 'Fair': return 'text-amber-400 border-amber-500/20 bg-amber-500/10 shadow-[0_0_30px_rgba(251,191,36,0.1)]';
+        case 'Poor': return 'text-rose-400 border-rose-500/20 bg-rose-500/10 shadow-[0_0_30px_rgba(251,113,133,0.1)]';
     }
 }
 
@@ -104,24 +104,26 @@ export default function ServiceQuality({ ping, download, upload, jitter, packetL
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-8">
             {ratings.map((rating, idx) => (
                 <motion.div
                     key={rating.name}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 + 0.5 }} // Delay appearing after main results
+                    transition={{ delay: idx * 0.1 + 0.3 }}
                     className={cn(
-                        "p-4 rounded-xl border flex flex-col items-center text-center gap-2",
+                        "p-6 rounded-2xl border backdrop-blur-sm flex flex-col items-center text-center gap-3 transition-all duration-300 hover:scale-[1.02]",
                         getQualityColor(rating.status)
                     )}
                 >
-                    <div className="text-3xl mb-1 opacity-80">
+                    <div className="text-4xl mb-2 opacity-90 drop-shadow-md">
                         <rating.icon />
                     </div>
-                    <h3 className="font-semibold text-lg text-white">{rating.name}</h3>
-                    <div className="font-bold text-lg">{rating.status}</div>
-                    <p className="text-xs opacity-70">{rating.description}</p>
+                    <div>
+                        <h3 className="font-bold text-lg text-white mb-1">{rating.name}</h3>
+                        <div className="font-bold text-xl tracking-tight mb-1">{rating.status}</div>
+                        <p className="text-sm opacity-80 font-medium">{rating.description}</p>
+                    </div>
                 </motion.div>
             ))}
         </div>

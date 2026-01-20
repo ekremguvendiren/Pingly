@@ -53,46 +53,48 @@ export default function GamerZone() {
         if (ms < 40) return isText ? "text-emerald-400" : "bg-emerald-500";
         if (ms < 70) return isText ? "text-lime-400" : "bg-lime-500";
         if (ms < 120) return isText ? "text-yellow-400" : "bg-yellow-500";
-        return isText ? "text-red-400" : "bg-red-500";
+        return isText ? "text-rose-400" : "bg-rose-500";
     };
 
     return (
-        <div className="p-10 flex flex-col items-center min-h-full w-full">
-            <header className="mb-10 text-center">
-                <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3 drop-shadow-lg">
-                    <FaGamepad className="text-purple-400" />
+        <div className="p-8 flex flex-col items-center min-h-full w-full max-w-[1600px] mx-auto">
+            <header className="mb-10 text-center w-full relative">
+                <div className="absolute top-0 right-0">
+                    <button
+                        onClick={runTests}
+                        disabled={loading}
+                        className="glass-button p-3 rounded-xl text-zinc-400 hover:text-white active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Refresh Data"
+                    >
+                        <FaRedo className={cn("text-lg", loading && "animate-spin")} />
+                    </button>
+                </div>
+                <h1 className="text-4xl font-bold text-white mb-2 flex items-center justify-center gap-4 drop-shadow-lg tracking-tight">
+                    <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20">
+                        <FaGamepad className="text-purple-400" />
+                    </div>
                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">
                         Gamer Zone
                     </span>
                 </h1>
-                <p className="text-zinc-400 font-medium">Global Server Health & Latency</p>
+                <p className="text-zinc-400 font-medium">Global Server Health & Latency Analysis</p>
             </header>
 
-            <div className="absolute top-10 right-10">
-                <button
-                    onClick={runTests}
-                    disabled={loading}
-                    className="p-3 bg-zinc-800/50 hover:bg-zinc-700/50 text-zinc-400 hover:text-white rounded-xl transition-all border border-white/5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Refresh Data"
-                >
-                    <FaRedo className={cn("text-lg", loading && "animate-spin")} />
-                </button>
-            </div>
-
             {!loading && results.length === 0 && (
-                <div className="flex flex-col items-center justify-center flex-1">
+                <div className="flex flex-col items-center justify-center flex-1 py-20">
                     <button
                         onClick={runTests}
-                        className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 text-white rounded-2xl font-medium shadow-xl transition-all text-lg flex items-center gap-3 group"
+                        className="group px-10 py-5 bg-white text-black hover:scale-105 rounded-full font-bold shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all text-lg flex items-center gap-4 relative overflow-hidden"
                     >
-                        <FaGlobeAmericas className="group-hover:rotate-12 transition-transform duration-500 text-purple-400" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                        <FaGlobeAmericas className="group-hover:rotate-12 transition-transform duration-500 text-purple-600" />
                         Start Global Scan
                     </button>
-                    <div className="flex flex-col items-center mt-6">
+                    <div className="flex flex-col items-center mt-8">
                         <p className="text-zinc-500 text-sm max-w-md text-center">
-                            Scanning 20+ High-Performance Game Servers (TCP Handshake)
+                            scanning 20+ High-Performance Game Servers via TCP Handshake
                         </p>
-                        <span className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -103,7 +105,7 @@ export default function GamerZone() {
             )}
 
             {(loading || results.length > 0) && (
-                <div className="w-full max-w-6xl space-y-8 pb-20">
+                <div className="w-full space-y-8 pb-20">
                     {loading && (
                         <div className="flex items-center justify-center gap-3 text-purple-300 mb-8 animate-pulse">
                             <div className="w-2 h-2 rounded-full bg-purple-400"></div>
@@ -131,9 +133,9 @@ export default function GamerZone() {
                                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                         transition={{ duration: 0.4, type: "spring" }}
-                                        className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl"
+                                        className="glass-panel rounded-3xl overflow-hidden flex flex-col shadow-xl"
                                     >
-                                        <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5 mx-2 mt-2 rounded-t-2xl">
+                                        <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
                                             <h3 className="font-bold text-white tracking-wide flex items-center gap-2">
                                                 {game}
                                                 {loading && (
@@ -144,9 +146,9 @@ export default function GamerZone() {
                                                 )}
                                             </h3>
                                             {bestPing ? (
-                                                <div className="text-xs bg-black/20 px-2 py-1 rounded-full text-zinc-300 flex items-center gap-1.5 border border-white/5">
+                                                <div className="glass-panel text-xs px-2.5 py-1 rounded-full text-zinc-300 flex items-center gap-1.5">
                                                     <FaTrophy className="text-yellow-400 text-[10px]" />
-                                                    <span className={getLatencyColor(bestPing.latency)}>{bestPing.latency.toFixed(0)}ms</span>
+                                                    <span className={cn("font-mono font-bold", getLatencyColor(bestPing.latency))}>{bestPing.latency.toFixed(0)}ms</span>
                                                 </div>
                                             ) : (
                                                 <div className="text-xs bg-red-500/10 px-2 py-1 rounded-full text-red-400 border border-red-500/20">
@@ -161,7 +163,7 @@ export default function GamerZone() {
                                                     key={ping.region}
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
-                                                    className="flex items-center justify-between p-3 rounded-xl bg-black/20 hover:bg-black/40 transition-colors border border-transparent hover:border-white/5 group"
+                                                    className="flex items-center justify-between p-3 rounded-xl bg-black/20 hover:bg-white/5 transition-all border border-transparent hover:border-white/5 group"
                                                 >
                                                     <div className="flex flex-col">
                                                         <span className="text-sm text-zinc-300 font-medium group-hover:text-white transition-colors">
@@ -214,7 +216,7 @@ export default function GamerZone() {
                         <div className="flex justify-center mt-12">
                             <button
                                 onClick={runTests}
-                                className="text-zinc-400 hover:text-white flex items-center gap-2 text-sm transition-colors py-3 px-6 rounded-full hover:bg-white/5 border border-transparent hover:border-white/10"
+                                className="glass-button text-zinc-400 hover:text-white flex items-center gap-2 text-sm px-6 py-3 rounded-full"
                             >
                                 <FaRedo />
                                 Rescan Network
